@@ -9,10 +9,14 @@ from google_images_download import google_images_download
 
 class CreateDataset:
     '''create dataset for Bonnet.
-    Why Chromedriver?
-    Answer: Google allows us to scrape the images page out of the box with 100 images in there.
-    If we want more than 100 images, we need selenium (with chromedriver) to automatically
-    scroll down page and get more images.
+    Input: keywords
+    Output: Dataset including downloaded images regarding keywords and the related yaml file
+    Error:
+        1. may use proxy to connect google;
+        2. Google allows us to scrape the images page out of the box with 100 images in there.
+        If we want more than 100 images, we need selenium (with chromedriver) to automatically
+        scroll down page and get more images.
+    TODO: download more more images
     '''
 
     def __init__(self):
@@ -29,7 +33,7 @@ class CreateDataset:
         parser.add_argument(
             '--proxy',
             type=str,
-            required=True,
+            required=False,
             help='using proxy'
         )
         parser.add_argument(
@@ -133,8 +137,7 @@ class CreateDataset:
         return records
 
     def deafault_yaml(self):
-        deafault_yaml = """\
-            # dataset cfg file
+        deafault_yaml = """\# dataset cfg file
             name: "general"
             data_dir: "/cache/datasets/persons/dataset"
             buff: True            # if this is true we buffer buff_n images in a fifo
