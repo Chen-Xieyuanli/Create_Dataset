@@ -1,6 +1,7 @@
 # Downloads
 downloads/
 cfg/
+.idea/
 
-.gitignore~
-README.md~
+*~
+*.pyc

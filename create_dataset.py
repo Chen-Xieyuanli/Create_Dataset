@@ -6,6 +6,7 @@ import os
 import argparse
 from ruamel.yaml import YAML  # for comments
 from google_images_download import google_images_download
+from baidu_images_crawler import BaiduImages
 
 class CreateDataset:
     '''create dataset for Bonnet.
@@ -250,12 +251,20 @@ class CreateDataset:
         return directory
 
     def crawl_images(self, arguments):
-        # download multiple images based on keywords/keyphrase search
+        # download multiple images based on keywords/keyphrase download
+        # using google crawler
         # class instantiation
-        response = google_images_download.googleimagesdownload()
+        response1 = google_images_download.googleimagesdownload()
 
         # wrapping response in a variable just for consistency
-        paths = response.download(arguments)
+        # paths contains the maps from keywords to all its images
+        paths = response1.download(arguments)
+
+        # using baidu crawler
+        # class instantiation
+        response2 = BaiduImages(arguments["keywords"])
+        paths = response2.download()
+
         return paths
 
     def create_yaml_file(self, arguments, paths):
