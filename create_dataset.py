@@ -1,12 +1,15 @@
 #!/usr/bin/python2.7
+# coding: utf-8
 # CreateDataset for Bonnet
 
 import time  # Importing the time library to check the time of code execution
 import os
 import argparse
 from ruamel.yaml import YAML  # for comments
-from google_images_download import google_images_download
+# from google_images_download import google_images_download
+from google_images_crawler import GoogleImages
 from baidu_images_crawler import BaiduImages
+
 
 class CreateDataset:
     '''create dataset for Bonnet.
@@ -17,7 +20,7 @@ class CreateDataset:
         2. Google allows us to scrape the images page out of the box with 100 images in there.
         If we want more than 100 images, we need selenium (with chromedriver) to automatically
         scroll down page and get more images.
-    TODO: download more more images
+    TODO: download more images
     '''
 
     def __init__(self):
@@ -29,7 +32,7 @@ class CreateDataset:
             '--keywords',
             type=str,
             required=True,
-            help='Key words for the dataset'
+            help='Keywords for searching'
         )
         parser.add_argument(
             '--proxy',
@@ -138,7 +141,8 @@ class CreateDataset:
         return records
 
     def deafault_yaml(self):
-        deafault_yaml = """\# dataset cfg file
+        deafault_yaml = """\
+        # dataset cfg file
             name: "general"
             data_dir: "/cache/datasets/persons/dataset"
             buff: True            # if this is true we buffer buff_n images in a fifo
@@ -254,16 +258,20 @@ class CreateDataset:
         # download multiple images based on keywords/keyphrase download
         # using google crawler
         # class instantiation
-        response1 = google_images_download.googleimagesdownload()
+        # response1 = google_images_download.googleimagesdownload()
 
         # wrapping response in a variable just for consistency
         # paths contains the maps from keywords to all its images
-        paths = response1.download(arguments)
+        # arguments["chromedriver"] = "/home/nubot/bonnet/create_dataset/chromedriver"
+        # arguments["limit"] = 2000
+        # paths = response1.download(arguments)
+        response1 = GoogleImages(arguments["keywords"])
+        paths, download_count = response1.download()
 
         # using baidu crawler
         # class instantiation
-        response2 = BaiduImages(arguments["keywords"])
-        paths = response2.download()
+        response2 = BaiduImages(arguments["keywords"], download_count = download_count)
+        response2.download()
 
         return paths
 

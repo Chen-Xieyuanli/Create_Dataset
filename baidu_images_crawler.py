@@ -1,4 +1,5 @@
 #!/usr/bin/python2.7
+# coding: utf-8
 # Creating dataset for Bonnet
 
 from urllib import quote
@@ -10,19 +11,25 @@ import sys
 
 
 class BaiduImages():
+    '''Baidu image crawler
+    Input: keyword, at this stage we could only search for one keyword in baidu.
+    Output: raw images regarding the keyword.
+    '''
 
-    def __init__(self, keyword, count=2000, save_path="downloads", rn=60):
+    # Initialization with keyword, downloaded number, save path.
+    # rn is the images number of one page, which is fixed 60 for baidu
+    def __init__(self, keyword, count=50, save_path="downloads", rn=60, download_count=0):
         self.keyword = keyword
         self.count = count
+        self.download_count = download_count
         self.save_path = save_path + "/" + keyword
         self.rn = rn
-
         self.image_list = []
-        self.totle_count = 0
-
+        self.totle_count = 1
         self.encode_keyword = quote(self.keyword)
         self.acJsonCount = self.get_ac_json_count()
 
+        # use headers to pretend searching through browsers
         self.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) " \
                           "AppleWebKit/537.36 (KHTML, like Gecko) " \
                           "Chrome/55.0.2883.95 Safari/537.36"
@@ -53,9 +60,10 @@ class BaiduImages():
             host = self.get_url_host(image)
             self.headers["Host"] = host
 
-            with open(self.save_path + "/%s.jpg" % self.totle_count, "wb") as p:
+            with open(self.save_path + "/%s.jpg" % (self.totle_count + self.download_count), "wb") as p:
                 try:
                     req = urllib.Request(image, headers=self.headers)
+
                     # set the waiting time
                     img = urllib.urlopen(req, timeout=20)
                     p.write(img.read())
@@ -64,13 +72,13 @@ class BaiduImages():
                 except Exception as e:
                     print "Exception" + str(e)
                     p.close()
-                    if os.path.exists("img/%s.jpg" % self.totle_count):
-                        os.remove("img/%s.jpg" % self.totle_count)
+                    # if os.path.exists("img/%s.jpg" % self.totle_count):
+                    #     os.remove("img/%s.jpg" % self.totle_count)
 
-        print "Already downloaded: " + str(self.totle_count) + " images"
+        print "Already downloaded: " + str(self.totle_count + self.download_count) + " images"
 
     def pick_image_urls(self, response):
-        reg = r'"ObjURL":"(http://img[0-9]\.imgtn.*?)"'
+        reg = r'"ObjURL":"(http://img[0-9]\.imgtn.*?)"'  # 'r' for no escape
         imgre = re.compile(reg)
         imglist = re.findall(imgre, response)
         return imglist
