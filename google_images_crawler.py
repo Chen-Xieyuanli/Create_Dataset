@@ -36,10 +36,11 @@ class GoogleImages():
     Output: raw images regarding the keyword.
     '''
 
-    def __init__(self, keyword, count=2, save_path="downloads"):
+    def __init__(self, keyword, count=2, save_path="downloads", using_proxy=False):
         self.keyword = keyword
         self.count = count
-        self.save_path = save_path + "/" + keyword
+        self.save_path = str(save_path) + "/" + keyword
+        self.using_proxy = using_proxy
 
     def download_extended_page(self, url, chromedriver):
         from selenium import webdriver
@@ -50,7 +51,11 @@ class GoogleImages():
         options = webdriver.ChromeOptions()
         options.add_argument('--no-sandbox')
         options.add_argument("--headless")
-        options.add_argument("--proxy-server=http://127.0.0.1:8123")
+
+        # using proxy
+        if self.using_proxy:
+            proxy_server = "--proxy-server=http://" + str(self.using_proxy)
+            options.add_argument(proxy_server)
 
         try:
             browser = webdriver.Chrome(chromedriver, chrome_options=options)
@@ -65,8 +70,8 @@ class GoogleImages():
         browser.get(url)
         time.sleep(1)
         print("Getting you a lot of images. This may take a few moments...")
-
         element = browser.find_element_by_tag_name("body")
+        
         # Scroll down
         for i in range(30):
             element.send_keys(Keys.PAGE_DOWN)
@@ -84,28 +89,23 @@ class GoogleImages():
 
         print("Reached end of Page.")
         time.sleep(0.5)
-
         source = browser.page_source  # page source
+
         # close the browser
         browser.close()
-
         return source
 
     # building main search URL
     def build_search_url(self, search_term):
-
         url = 'https://www.google.com/search?q=' +\
               quote(search_term) +\
               '&espv=2&biw=1366&bih=667&site=webhp&source=lnms&tbm=isch' +\
               '&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg'
-
         return url
 
     def download_image(self, image_url, dir_name, count, socket_timeout=10):
-
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
-
         try:
             req = Request(image_url, headers={
                 "User-Agent": "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17"})
@@ -131,8 +131,6 @@ class GoogleImages():
                     return_image_name = ''
                     absolute_path = ''
 
-                # return image name back to calling method to use it for
-                # thumbnail downloads
                 download_status = 'success'
                 download_message = "Completed Image ====> " + \
                     str(count)
@@ -246,8 +244,8 @@ class GoogleImages():
         abs_path = []
         errorCount = 0
         i = 0
-        count = 1
-        while count < limit + 1:
+        count = 0
+        while count < limit:
             object, end_content = self._get_next_item(page)
             if object == "no_links":
                 break
@@ -275,19 +273,23 @@ class GoogleImages():
         if count < limit:
             print("\n\nUnfortunately all " + str(
                 limit) + " could not be downloaded because some images were not downloadable. " + str(
-                count - 1) + " is all we got for this search filter!")
+                count) + " is all we got for this search filter!")
         return items, errorCount, abs_path, count
 
     def download(self):
         # building main search url
         url = self.build_search_url(self.keyword)
+
+        # downloading pages
         raw_html = self.download_extended_page(url, "./chromedriver")
+
+        # downloading images
         print("Starting Download...")
         items, error_count, abs_path, download_count = self._get_all_items(
             raw_html, self.save_path, self.count)
-        paths = {}
-        paths[self.keyword] = abs_path
-        return paths, download_count
+
+        # return the downloaded count
+        return download_count
 
 
 # for test

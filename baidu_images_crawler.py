@@ -18,14 +18,14 @@ class BaiduImages():
 
     # Initialization with keyword, downloaded number, save path.
     # rn is the images number of one page, which is fixed 60 for baidu
-    def __init__(self, keyword, count=50, save_path="downloads", rn=60, download_count=0):
+    def __init__(self, keyword, count=2, save_path="downloads", rn=60, download_count=0):
         self.keyword = keyword
         self.count = count
         self.download_count = download_count
-        self.save_path = save_path + "/" + keyword
+        self.save_path = str(save_path) + "/" + keyword
         self.rn = rn
         self.image_list = []
-        self.totle_count = 1
+        self.totle_count = 0
         self.encode_keyword = quote(self.keyword)
         self.acJsonCount = self.get_ac_json_count()
 
@@ -45,12 +45,13 @@ class BaiduImages():
             response = self.download_page(url).replace("\\", "")
             image_url_list = self.pick_image_urls(response)
             self.save_images(image_url_list)
+        return self.totle_count
 
     def save_images(self, image_url_list, save_path=None):
         if save_path:
             self.save_path = save_path
 
-        print "Already downloaded: " + str(self.totle_count) + "images"
+        print "Already downloaded: " + str(self.totle_count + self.download_count) + " images"
         print "downloading: " + str(len(image_url_list)) + " images in: " + self.save_path
 
         if not os.path.exists(self.save_path):
@@ -78,7 +79,7 @@ class BaiduImages():
         print "Already downloaded: " + str(self.totle_count + self.download_count) + " images"
 
     def pick_image_urls(self, response):
-        reg = r'"ObjURL":"(http://img[0-9]\.imgtn.*?)"'  # 'r' for no escape
+        reg = r'"ObjURL":"(http://img[0-9]\.imgtn.*?)"'  # 'r' for no escaping
         imgre = re.compile(reg)
         imglist = re.findall(imgre, response)
         return imglist

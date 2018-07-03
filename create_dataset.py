@@ -41,6 +41,13 @@ class CreateDataset:
             help='using proxy'
         )
         parser.add_argument(
+            '--save_path',
+            type=str,
+            required=False,
+            help='providing saving path for downloaded images',
+            default='downloads'
+        )
+        parser.add_argument(
             '--y_name',
             type=str,
             required=False,
@@ -144,7 +151,7 @@ class CreateDataset:
         deafault_yaml = """\
         # dataset cfg file
             name: "general"
-            data_dir: "/cache/datasets/persons/dataset"
+            data_dir: "./downloads"
             buff: True            # if this is true we buffer buff_n images in a fifo
             buff_nr: 3000         # number of images to keep in fifo (prefetch batch) <-should be bigger than batch size to make sense
             img_prop:
@@ -188,52 +195,44 @@ class CreateDataset:
         if arguments['y_label_remap']:
             dataset['label_remap'] = arguments['y_label_remap']
 
-    def set_maps(self, arguments, paths, dataset):
+    def set_maps(self, arguments, dataset):
         # automatically generate the direction of the dataset
         key_num = 0  # count for keys
         label_num = 0  # count for labels
         color_num_1 = 0  # count for colormap
         color_num_2 = 0  # count for colormap
         color_num_3 = 0  # count for colormap
+        raw_dir = str(arguments["save_path"]) + "/" + arguments["keywords"]
 
-        # for each key create a yaml unit.
-        for keys in paths:
-            # automatically generate the data_dir for each label
-            lists = list(paths[keys])
+        # deciding the storing directory
+        if not arguments['y_data_dir']:
+            dataset['data_dir'] = raw_dir
+            print ("setting the data directory as: ", dataset['data_dir'])
+        raw_data_dir = raw_dir
+        print("data_dir:", raw_data_dir)
+        filename = 'label' + str(key_num)
+        data_dir = "data_dir" + str(key_num)
+        dataset[filename] = arguments["keywords"]
+        dataset[data_dir] = raw_data_dir
 
-            # try to find downloaded picture
-            try:
-                raw_dir = lists[0]
-            except:
-                print("Error downloading images...")
-
-            if not arguments['y_data_dir']:
-                dataset['data_dir'] = os.path.dirname(os.path.dirname(raw_dir))
-            raw_data_dir = os.path.dirname(raw_dir)
-            print("data_dir:", raw_data_dir)
-            filename = 'label' + str(key_num)
-            data_dir = "data_dir" + str(key_num)
-            dataset[filename] = keys
-            dataset[data_dir] = raw_data_dir
-
-            # automatically generate the relative maps
-            if not arguments['y_label_map']:
-                dataset['label_map'][label_num] = keys
-            if not arguments['y_color_map']:
-                dataset['color_map'][label_num] = [
-                    color_num_1, color_num_2, color_num_3]
-                if color_num_1 < 192:
-                    color_num_1 += 64
-                elif color_num_2 < 192:
-                    color_num_2 += 64
-                elif color_num_3 < 192:
-                    color_num_3 += 64
-                else:
-                    print("Color Map Overflow!!!")
-            if not arguments['y_label_remap']:
-                dataset['label_remap'][label_num] = key_num
-            key_num += 1
-            label_num += 20
+        # automatically generate the relative maps
+        if not arguments['y_label_map']:
+            dataset['label_map'][label_num] = arguments["keywords"]
+        if not arguments['y_color_map']:
+            dataset['color_map'][label_num] = [
+                color_num_1, color_num_2, color_num_3]
+            if color_num_1 < 192:
+                color_num_1 += 64
+            elif color_num_2 < 192:
+                color_num_2 += 64
+            elif color_num_3 < 192:
+                color_num_3 += 64
+            else:
+                print("Color Map Overflow!!!")
+        if not arguments['y_label_remap']:
+            dataset['label_remap'][label_num] = key_num
+        key_num += 1
+        label_num += 20
 
     def decide_directory(self, arguments):
         # decide folder name
@@ -258,24 +257,19 @@ class CreateDataset:
         # download multiple images based on keywords/keyphrase download
         # using google crawler
         # class instantiation
-        # response1 = google_images_download.googleimagesdownload()
-
-        # wrapping response in a variable just for consistency
-        # paths contains the maps from keywords to all its images
-        # arguments["chromedriver"] = "/home/nubot/bonnet/create_dataset/chromedriver"
-        # arguments["limit"] = 2000
-        # paths = response1.download(arguments)
-        response1 = GoogleImages(arguments["keywords"])
-        paths, download_count = response1.download()
+        response1 = GoogleImages(keyword=arguments["keywords"], save_path=arguments["save_path"], using_proxy=arguments["proxy"])
+        download_count_google = response1.download()
+        print "Already downloaded: " + str(download_count_google) + " images from Goole"
 
         # using baidu crawler
         # class instantiation
-        response2 = BaiduImages(arguments["keywords"], download_count = download_count)
-        response2.download()
+        response2 = BaiduImages(keyword=arguments["keywords"], save_path=arguments["save_path"], download_count=download_count_google)
+        download_count_baidu = response2.download()
+        print "Already downloaded: " + str(download_count_baidu) + " images from Baidu, " +\
+              str(download_count_baidu+download_count_google) + " in total"
 
-        return paths
 
-    def create_yaml_file(self, arguments, paths):
+    def create_yaml_file(self, arguments):
         yaml = YAML()
         dataset = yaml.load(self.deafault_yaml())
 
@@ -283,7 +277,7 @@ class CreateDataset:
         self.set_yaml_parameters(arguments, dataset)
 
         # Set the dataset maps
-        self.set_maps(arguments, paths, dataset)
+        self.set_maps(arguments, dataset)
 
         # decide_directory
         directory = self.decide_directory(arguments)
@@ -299,11 +293,11 @@ class CreateDataset:
         t0 = time.time()
         for arguments in records:
             # crawl images
-            paths = self.crawl_images(arguments)
+            self.crawl_images(arguments)
             print("\nEverything downloaded!")
 
             # create the relative yaml file
-            self.create_yaml_file(arguments, paths)
+            self.create_yaml_file(arguments)
             print("\nYaml files created!")
 
         # stop the timer
