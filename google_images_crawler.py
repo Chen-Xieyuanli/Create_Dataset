@@ -36,7 +36,7 @@ class GoogleImages():
     Output: raw images regarding the keyword.
     '''
 
-    def __init__(self, keyword, count=2, save_path="downloads", using_proxy=False):
+    def __init__(self, keyword, count=2000, save_path="downloads", using_proxy=False):
         self.keyword = keyword
         self.count = count
         self.save_path = str(save_path) + "/" + keyword
@@ -71,7 +71,7 @@ class GoogleImages():
         time.sleep(1)
         print("Getting you a lot of images. This may take a few moments...")
         element = browser.find_element_by_tag_name("body")
-        
+
         # Scroll down
         for i in range(30):
             element.send_keys(Keys.PAGE_DOWN)

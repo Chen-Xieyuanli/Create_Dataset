@@ -18,7 +18,7 @@ class BaiduImages():
 
     # Initialization with keyword, downloaded number, save path.
     # rn is the images number of one page, which is fixed 60 for baidu
-    def __init__(self, keyword, count=2, save_path="downloads", rn=60, download_count=0):
+    def __init__(self, keyword, count=2000, save_path="downloads", rn=60, download_count=0):
         self.keyword = keyword
         self.count = count
         self.download_count = download_count
