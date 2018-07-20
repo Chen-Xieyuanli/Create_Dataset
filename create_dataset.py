@@ -9,6 +9,7 @@ from ruamel.yaml import YAML  # for comments
 # from google_images_download import google_images_download
 from google_images_crawler import GoogleImages
 from baidu_images_crawler import BaiduImages
+from bing_images_crawler import BingImages
 
 
 class CreateDataset:
@@ -149,24 +150,24 @@ class CreateDataset:
 
     def deafault_yaml(self):
         deafault_yaml = """\
-        # dataset cfg file
-            name: "general"
-            data_dir: "./downloads"
-            buff: True            # if this is true we buffer buff_n images in a fifo
-            buff_nr: 3000         # number of images to keep in fifo (prefetch batch) <-should be bigger than batch size to make sense
-            img_prop:
-              width: 512
-              height: 512
-              depth: 3            # number of channels in original image
-            force_resize: True    # if dataset contains images of different size, it should be True
-            force_remap: False
-            label_map:
-              0: "background"
-            color_map: # bgr
-              0: [0, 0, 0]
-            label_remap:          # for softmax (it must be an index of the onehot array)
-              0: 0
-            """
+# dataset cfg file
+name: "general"
+data_dir: "./downloads"
+buff: True            # if this is true we buffer buff_n images in a fifo
+buff_nr: 3000         # number of images to keep in fifo (prefetch batch) <-should be bigger than batch size to make sense
+img_prop:
+  width: 512
+  height: 512
+  depth: 3            # number of channels in original image
+force_resize: True    # if dataset contains images of different size, it should be True
+force_remap: False
+label_map:
+  0: "background"
+color_map: # bgr
+  0: [0, 0, 0]
+label_remap:          # for softmax (it must be an index of the onehot array)
+  0: 0
+"""
         return deafault_yaml
 
     def set_yaml_parameters(self, arguments, dataset):
@@ -188,20 +189,17 @@ class CreateDataset:
             dataset['force_resize'] = arguments['y_force_resize']
         if arguments['y_force_remap']:
             dataset['force_remap'] = arguments['y_force_remap']
-        if arguments['y_label_map']:
-            dataset['label_map'] = arguments['y_label_map']
-        if arguments['y_color_map']:
-            dataset['color_map'] = arguments['y_color_map']
-        if arguments['y_label_remap']:
-            dataset['label_remap'] = arguments['y_label_remap']
 
     def set_maps(self, arguments, dataset):
         # automatically generate the direction of the dataset
-        key_num = 0  # count for keys
-        label_num = 0  # count for labels
-        color_num_1 = 0  # count for colormap
-        color_num_2 = 0  # count for colormap
-        color_num_3 = 0  # count for colormap
+        key_num = 1  # count for keys
+        label_num = 1  # count for labels
+
+        # for multiple keywords
+        # color_num_1 = 0  # count for colormap
+        # color_num_2 = 0  # count for colormap
+        # color_num_3 = 0  # count for colormap
+
         raw_dir = str(arguments["save_path"]) + "/" + arguments["keywords"]
 
         # deciding the storing directory
@@ -216,23 +214,36 @@ class CreateDataset:
         dataset[data_dir] = raw_data_dir
 
         # automatically generate the relative maps
-        if not arguments['y_label_map']:
+        if arguments['y_label_map']:
+            dataset['label_map'][label_num] = arguments['y_label_map']
+        else:
             dataset['label_map'][label_num] = arguments["keywords"]
-        if not arguments['y_color_map']:
-            dataset['color_map'][label_num] = [
-                color_num_1, color_num_2, color_num_3]
-            if color_num_1 < 192:
-                color_num_1 += 64
-            elif color_num_2 < 192:
-                color_num_2 += 64
-            elif color_num_3 < 192:
-                color_num_3 += 64
-            else:
-                print("Color Map Overflow!!!")
-        if not arguments['y_label_remap']:
+
+        if arguments['y_color_map']:
+            dataset['color_map'][label_num] = arguments['y_color_map']
+        else:
+            dataset['color_map'][label_num] = [255,0,0]
+
+            # for multiple keywords
+            # dataset['color_map'][label_num] = [
+            #     color_num_1, color_num_2, color_num_3]
+            # if color_num_1 < 192:
+            #     color_num_1 += 64
+            # elif color_num_2 < 192:
+            #     color_num_2 += 64
+            # elif color_num_3 < 192:
+            #     color_num_3 += 64
+            # else:
+            #     print("Color Map Overflow!!!")
+
+        if arguments['y_label_remap']:
+            dataset['label_remap'][label_num] = arguments['y_label_remap']
+        else:
             dataset['label_remap'][label_num] = key_num
-        key_num += 1
-        label_num += 20
+
+        # for multiple keywords
+        # key_num += 1
+        # label_num += 20
 
     def decide_directory(self, arguments):
         # decide folder name
@@ -253,20 +264,28 @@ class CreateDataset:
         directory = folder + filename
         return directory
 
+    # download multiple images based on keywords/keyphrase download
     def crawl_images(self, arguments):
-        # download multiple images based on keywords/keyphrase download
         # using google crawler
         # class instantiation
         response1 = GoogleImages(keyword=arguments["keywords"], save_path=arguments["save_path"], using_proxy=arguments["proxy"])
         download_count_google = response1.download()
-        print "Already downloaded: " + str(download_count_google) + " images from Goole"
+        print "Already downloaded: " + str(download_count_google) + " images from Google."
+
+        # using google crawler
+        # class instantiation
+        response2 = BingImages(keyword=arguments["keywords"], save_path=arguments["save_path"], download_count=download_count_google)
+        download_count_Bing = response2.download()
+        print "Already downloaded: " + str(download_count_Bing) + " images from Bing."
 
         # using baidu crawler
         # class instantiation
-        response2 = BaiduImages(keyword=arguments["keywords"], save_path=arguments["save_path"], download_count=download_count_google)
-        download_count_baidu = response2.download()
-        print "Already downloaded: " + str(download_count_baidu) + " images from Baidu, " +\
-              str(download_count_baidu+download_count_google) + " in total"
+        response3 = BaiduImages(keyword=arguments["keywords"], save_path=arguments["save_path"],
+                                download_count=download_count_google+download_count_Bing)
+        download_count_baidu = response3.download()
+        print "Already downloaded: " + str(download_count_baidu) + " images from Baidu."
+
+        print "Downloaded: " + str(download_count_baidu+download_count_google+download_count_Bing) + " in total."
 
 
     def create_yaml_file(self, arguments):

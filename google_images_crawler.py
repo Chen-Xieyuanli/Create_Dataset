@@ -1,12 +1,14 @@
 #!/usr/bin/python2.7
 # coding: utf-8
 # Creating dataset for Bonnet
+
 import sys
 import time  # Importing the time library to check the time of code execution
 import json
 import re
 import os
 import ssl
+import threading
 
 version = (3, 0)
 cur_version = sys.version_info
@@ -36,11 +38,17 @@ class GoogleImages():
     Output: raw images regarding the keyword.
     '''
 
-    def __init__(self, keyword, count=2000, save_path="downloads", using_proxy=False):
+    def __init__(self, keyword, limit=20, save_path="downloads", using_proxy='', threads=40):
         self.keyword = keyword
-        self.count = count
+        self.limit = limit
         self.save_path = str(save_path) + "/" + keyword
         self.using_proxy = using_proxy
+        self.errorCount = 0
+        self.count = 0
+
+        # for multi-threads
+        self.threads = threads
+        self.pool_sema = threading.BoundedSemaphore(self.threads)
 
     def download_extended_page(self, url, chromedriver):
         from selenium import webdriver
@@ -67,6 +75,7 @@ class GoogleImages():
         browser.set_window_size(1024, 768)
 
         # Open the link
+        print("Waiting for opening the browser...")
         browser.get(url)
         time.sleep(1)
         print("Getting you a lot of images. This may take a few moments...")
@@ -103,7 +112,8 @@ class GoogleImages():
               '&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg'
         return url
 
-    def download_image(self, image_url, dir_name, count, socket_timeout=10):
+    def download_image(self, image_url, dir_name, pool_sema, socket_timeout=20):
+        pool_sema.acquire()
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
         try:
@@ -117,75 +127,67 @@ class GoogleImages():
                 data = response.read()
                 response.close()
 
-                path = dir_name + "/" + str(count) + ".jpg"
+                # path = dir_name + "/" + str(count) + ".jpg"
+                path = dir_name + "/" + str(self.count)
 
                 try:
                     output_file = open(path, 'wb')
                     output_file.write(data)
                     output_file.close()
-                    absolute_path = os.path.abspath(path)
+
                 except OSError as e:
                     download_status = 'fail'
                     download_message = "OSError on an image...trying next one..." + \
                         " Error: " + str(e)
-                    return_image_name = ''
-                    absolute_path = ''
 
                 download_status = 'success'
-                download_message = "Completed Image ====> " + \
-                    str(count)
-                return_image_name = str(count)
+                download_message = "Completed GoogleImage ====> " + \
+                    str(self.count)
 
             except UnicodeEncodeError as e:
                 download_status = 'fail'
                 download_message = "UnicodeEncodeError on an image...trying next one..." + \
                     " Error: " + str(e)
-                return_image_name = ''
-                absolute_path = ''
 
             except URLError as e:
                 download_status = 'fail'
                 download_message = "URLError on an image...trying next one..." + \
                     " Error: " + str(e)
-                return_image_name = ''
-                absolute_path = ''
 
         except HTTPError as e:  # If there is any HTTPError
             download_status = 'fail'
             download_message = "HTTPError on an image...trying next one..." + \
                 " Error: " + str(e)
-            return_image_name = ''
-            absolute_path = ''
 
         except URLError as e:
             download_status = 'fail'
             download_message = "URLError on an image...trying next one..." + \
                 " Error: " + str(e)
-            return_image_name = ''
-            absolute_path = ''
 
         except ssl.CertificateError as e:
             download_status = 'fail'
             download_message = "CertificateError on an image...trying next one..." + \
                 " Error: " + str(e)
-            return_image_name = ''
-            absolute_path = ''
 
         except IOError as e:  # If there is any IOError
             download_status = 'fail'
             download_message = "IOError on an image...trying next one..." + \
                 " Error: " + str(e)
-            return_image_name = ''
-            absolute_path = ''
 
         except IncompleteRead as e:
             download_status = 'fail'
             download_message = "IncompleteReadError on an image...trying next one..." + \
                 " Error: " + str(e)
-            return_image_name = ''
-            absolute_path = ''
 
-        return download_status, download_message, return_image_name, absolute_path
+        finally:
+            print(download_status)
+            print(download_message)
+            if download_status == "success":
+                self.count += 1
+            else:
+                self.errorCount += 1
+            pool_sema.release()
+
 
     # Finding 'Next Image' from the given raw page
     def _get_next_item(self, s):
@@ -239,13 +241,9 @@ class GoogleImages():
         return formatted_object
 
     # Getting all links with the help of '_images_get_next_image'
-    def _get_all_items(self, page, dir_name, limit):
-        items = []
-        abs_path = []
-        errorCount = 0
-        i = 0
-        count = 0
-        while count < limit:
+    def _get_all_items(self, page, dir_name):
+        threads = []
+        while self.count <= self.limit:
             object, end_content = self._get_next_item(page)
             if object == "no_links":
                 break
@@ -255,26 +253,14 @@ class GoogleImages():
                 # format the item for readability
                 object = self.format_object(object)
 
-                # Append all the links in the list named 'Links'
-                items.append(object)
-
                 # download the images
-                download_status, download_message, return_image_name, absolute_path = self.download_image(
-                    object['image_link'], dir_name, count)
-                print(download_message)
-                if download_status == "success":
-                    count += 1
-                    abs_path.append(absolute_path)
-                else:
-                    errorCount += 1
+                t = threading.Thread(target=self.download_image, args=(object['image_link'], dir_name, self.pool_sema))
+                t.start()
 
+                # Append all the threads in the list named 'threads'
+                threads.append(t)
                 page = page[end_content:]
-            i += 1
-        if count < limit:
-            print("\n\nUnfortunately all " + str(
-                limit) + " could not be downloaded because some images were not downloadable. " + str(
-                count) + " is all we got for this search filter!")
-        return items, errorCount, abs_path, count
+        return threads
 
     def download(self):
         # building main search url
@@ -285,15 +271,18 @@ class GoogleImages():
 
         # downloading images
         print("Starting Download...")
-        items, error_count, abs_path, download_count = self._get_all_items(
-            raw_html, self.save_path, self.count)
+        threads = self._get_all_items(raw_html, self.save_path)
+
+        # waiting for all threads finished
+        for t in threads:
+            t.join()
 
         # return the downloaded count
-        return download_count
+        return self.count
 
 
 # for test
 if __name__ == '__main__':
     keyword = " ".join(sys.argv[1:])
-    search = GoogleImages(keyword)
+    search = GoogleImages(keyword, using_proxy='127.0.0.1:8123')
     search.download()
