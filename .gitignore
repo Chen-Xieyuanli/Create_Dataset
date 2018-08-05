@@ -5,3 +5,6 @@ cfg/
 
 *~
 *.pyc
+cat/
+bear/
+features-onlymean

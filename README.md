@@ -1,5 +1,27 @@
-# Create_Dataset
-create dataset for Bonnet
+#Create_Dataset
+## Second step
+Clean the outliers of the created dataset.
+
+## How to run a demo
+```sh
+$ python clean_outliers.py path/to/the/Dataset
+```
+
+## Version Control
+### Version 2
+- **Status**: At this version, We extract the last-layer features of each images and calculate the medium valve of them. Using these mediums, we estimate the distribution of the featrues and clean the outliers by setting the confidence interval.
+- **TODO**: Combining the step one and step two.
+### Version 1
+- **Status**: At this version, We use the pretrained ResNet with Pytorch to classify each image in the created dataset and keep the class number of each image.
+- **TODO**: Using the class numbers, we would like to find out and delete the outliers.
+Classification result for cat dataset with 130 images
+![image](https://github.com/Chen-Xieyuanli/clean_outliers/blob/master/classification_result_130.png)
+
+Classification result for cat dataset with 3000 images
+![image](https://github.com/Chen-Xieyuanli/clean_outliers/blob/master/classification_result_3000.png)
+
+## First step
+Automatically download images from Google, Bing and Baidu and create dataset for Bonnet.
 
 ## How to run
 ```sh
@@ -37,21 +59,3 @@ $ python create_dataset.py --keywords "bears"
 ### Version 1
 - **Status**: At this version, We could download about 100 images from google.
 
-# Clean_Outliers
-Clean the outliers of the created dataset
-
-## How to run a demo
-```sh
-$ python clean_outliers.py path/to/the/Dataset
-```
-
-## Version Control
-### Version 1
-- **Status**: At this version, We use the pretrained ResNet with Pytorch to classify each image in the created dataset and keep the class number of each image.
-- **TODO**: Using the class numbers, we would like to find out and delete the outliers.
-
-Classification result for cat dataset with 130 images
-![image](https://github.com/Chen-Xieyuanli/clean_outliers/blob/master/classification_result_130.png)
-
-Classification result for cat dataset with 3000 images
-![image](https://github.com/Chen-Xieyuanli/clean_outliers/blob/master/classification_result_3000.png)
