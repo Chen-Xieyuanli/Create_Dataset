@@ -9,7 +9,7 @@ $ python clean_outliers.py path/to/the/Dataset
 
 ### Version Control
 #### Version 2
-- **Status**: At this version, We extract the last-layer features of each images and calculate the medium valve of them. Using these mediums, we estimate the distribution of the featrues and clean the outliers by setting the confidence interval.
+- **Status**: At this version, We extract the last-layer features of each images and calculate the medium valve of them. Using these mediums, we estimate the distribution of the features and clean the outliers by setting the confidence interval.
 - **TODO**: Combining the step one and step two.
 #### Version 1
 - **Status**: At this version, We use the pretrained ResNet with Pytorch to classify each image in the created dataset and keep the class number of each image.

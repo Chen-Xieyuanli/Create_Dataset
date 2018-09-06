@@ -17,7 +17,7 @@ from torchvision import transforms as T
 
 class CleanOutliers():
     '''Classifier for Creating dataset
-    Input: The path of dataset.
+    Input: The path of the dataset.
     Output: The Classnumber of each image.
     '''
 
@@ -52,7 +52,7 @@ class CleanOutliers():
             return img_var
 
         except:
-            print "Cannot open this image!!!"
+            print("Cannot open this image!!!")
             os.remove(img_path)
 
     def extract_features(self, img_var):
@@ -106,7 +106,6 @@ class CleanOutliers():
         plt.xlabel("image_number", fontweight="bold")
         plt.ylabel("median_value", fontweight="bold")
 
-
         # plot the distribution and the confidence interval
         plt.subplot(212)
         num_interval_array = []
@@ -122,9 +121,9 @@ class CleanOutliers():
             x_array.append(x_value)
 
         plt.plot(x_array, num_interval_array, "r", linewidth=2.0)
-        plt.plot(feature_mean * np.ones(900), np.arange(0, 900, 1), "b", linewidth=2.0)
-        plt.plot((feature_mean + self.confidence_coefficient) * np.ones(900), np.arange(0, 900, 1), "b--", linewidth=2.0)
-        plt.plot((feature_mean - self.confidence_coefficient) * np.ones(900), np.arange(0, 900, 1), "b--", linewidth=2.0)
+        plt.plot(feature_mean * np.ones(np.max(num_interval_array)), np.arange(0, np.max(num_interval_array), 1), "b", linewidth=2.0)
+        plt.plot((feature_mean + self.confidence_coefficient) * np.ones(np.max(num_interval_array)), np.arange(0, np.max(num_interval_array), 1), "b--", linewidth=2.0)
+        plt.plot((feature_mean - self.confidence_coefficient) * np.ones(np.max(num_interval_array)), np.arange(0, np.max(num_interval_array), 1), "b--", linewidth=2.0)
         plt.title("Feature Distribution", fontsize="large", fontweight="bold")
         plt.xlabel("median_value", fontweight="bold")
         plt.ylabel("number_of_images", fontweight="bold")
@@ -135,6 +134,32 @@ class CleanOutliers():
 
         return delete_list
 
+    def pca(dataMat, topNfeat=3):
+        # calculate the mean value of each column
+        feature_mean = np.mean(dataMat, axis=0)
+
+        # decentralization
+        feature_decentralized = dataMat - feature_mean
+
+        # calculate the covariance
+        # set each column representing a variable, while the rows contain observations.
+        cov_mat = np.cov(feature_decentralized, rowvar=0)
+
+        # calculate the eigenvalues of the covariance matrix and the corresponding eigenvectors
+        eig_vals, eig_vects = np.linalg.eig(np.mat(cov_mat))
+
+        # descend the eigenvalues
+        eig_val_id = np.argsort(eig_vals)
+        eig_val_id = eig_val_id[:-(topNfeat + 1):-1]
+
+        # extract the corresponding eigenvectors
+        red_eig_vects = eig_vects[:, eig_val_id]
+
+        # descend the dimensions
+        low_data_mat = feature_decentralized * red_eig_vects
+
+        return low_data_mat, feature_mean
+
     def clean_outliers(self):
         root_path = self.path
         image_list = os.listdir(root_path)
@@ -142,13 +167,18 @@ class CleanOutliers():
         feature_txt_path = "./features.txt" # save the feature list to the features.txt
         f = file(feature_txt_path, "a+")
 
+        # Init the feature matrix
+        # each row represents the feature of one image
+        # each column represents the values of a specific dimension in all features
+        feature_matrix = [[]] * len(image_list)
+
         for i in range(0, len(image_list)):
             image_path = os.path.join(root_path, image_list[i])
             if os.path.isfile(image_path):
                 img_var = self.transform_image(image_path)
 
                 if img_var is None:
-                    print "The No." + str(image_list[i]) + " image is unreadable."
+                    print ("The No." + str(image_list[i]) + " image is unreadable.")
                     new_context = str(image_list[i]) + ": is bad\n"
                     f.write(new_context)
                     try:
@@ -162,26 +192,35 @@ class CleanOutliers():
                     features = self.extract_features(img_var)
                     feature_slice = features[0, 1:, 0, 0].numpy()
 
-                    feature_class = np.mean(feature_slice)
+                    # record all the features as a matrix
+                    # feature_matrix[image_list[i]] = feature_slice
 
-                    new_context = str(image_list[i]) + ": " + str(feature_class) + "\n"
+                    # feature_class = np.mean(feature_slice)
+
+                    new_context = str(image_list[i]) + ": "
                     f.write(new_context)
-                    print "The No." + str(image_list[i]) + " image is done!"
+                    for x in range(0, len(feature_slice)):
+                        f.write(str(feature_slice[x])+" ")
+                        pass
+                    f.write("\n")
+
+                    print("The No." + str(image_list[i]) + " image is done!")
 
                 except:
-                    print "The No." + str(image_list[i]) + " image is unreadable."
+                    print("The No." + str(image_list[i]) + " image is unreadable.")
                     new_context = str(image_list[i]) + ": is bad\n"
                     f.write(new_context)
-                    os.remove(image_path)
+                    # os.remove(image_path)
 
         f.close()
 
         # draw the distribution of the features' medians and delete the outliers
         delete_list = self.draw_distribution(feature_txt_path)
         for i in range(0, len(delete_list)):
-            print "delete " + str(image_list[i])
+            print("delete " + str(image_list[i]))
             try:
-                os.remove(os.path.join(root_path, image_list[i]))
+                continue
+                # os.remove(os.path.join(root_path, image_list[i]))
             except:
                 continue
 
