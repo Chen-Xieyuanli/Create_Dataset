@@ -37,7 +37,7 @@ class CleanOutliers():
                                 std=[0.229, 0.224, 0.225])
 
         transforms = T.Compose([
-            T.Resize(224),
+            T.Scale(224),
             T.CenterCrop(224),
             T.ToTensor(),
             normalize
@@ -165,7 +165,7 @@ class CleanOutliers():
         image_list = os.listdir(root_path)
         image_list.sort()
         feature_txt_path = "./features.txt" # save the feature list to the features.txt
-        f = file(feature_txt_path, "a+")
+        f = open(feature_txt_path, "a+")
 
         # Init the feature matrix
         # each row represents the feature of one image
@@ -197,7 +197,7 @@ class CleanOutliers():
 
                     # feature_class = np.mean(feature_slice)
 
-                    new_context = str(image_list[i]) + ": "
+                    new_context = str(image_list[i]) + " "
                     f.write(new_context)
                     for x in range(0, len(feature_slice)):
                         f.write(str(feature_slice[x])+" ")
@@ -231,6 +231,6 @@ class CleanOutliers():
 # for test
 if __name__ == '__main__':
     # dataset_path = " ".join(sys.argv[1:])
-    dataset_path = "/home/nubot/bonnet/create_dataset/cat"
+    dataset_path = "/home/ipb38admin/yuanli/Create_Dataset/car"
     search = CleanOutliers(dataset_path)
     search.clean_outliers()

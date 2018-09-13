@@ -38,7 +38,7 @@ class GoogleImages():
     Output: raw images regarding the keyword.
     '''
 
-    def __init__(self, keyword, limit=20, save_path="downloads", using_proxy='', threads=40):
+    def __init__(self, keyword, limit=2000, save_path="downloads", using_proxy='', threads=40):
         self.keyword = keyword
         self.limit = limit
         self.save_path = str(save_path) + "/" + keyword
@@ -118,7 +118,8 @@ class GoogleImages():
             os.makedirs(self.save_path)
         try:
             req = Request(image_url, headers={
-                "User-Agent": "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17"})
+                "User-Agent": "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko)"
+                              " Chrome/24.0.1312.27 Safari/537.17"})
             try:
                 # timeout time to download an image
                 timeout = float(socket_timeout)
@@ -187,7 +188,6 @@ class GoogleImages():
             else:
                 self.errorCount += 1
             pool_sema.release()
-
 
     # Finding 'Next Image' from the given raw page
     def _get_next_item(self, s):
@@ -284,5 +284,5 @@ class GoogleImages():
 # for test
 if __name__ == '__main__':
     keyword = " ".join(sys.argv[1:])
-    search = GoogleImages(keyword, using_proxy='127.0.0.1:8123')
+    search = GoogleImages("car")
     search.download()

@@ -268,24 +268,25 @@ label_remap:          # for softmax (it must be an index of the onehot array)
     def crawl_images(self, arguments):
         # using google crawler
         # class instantiation
-        response1 = GoogleImages(keyword=arguments["keywords"], save_path=arguments["save_path"], using_proxy=arguments["proxy"])
+        response1 = GoogleImages(keyword=arguments["keywords"], save_path=arguments["save_path"])
         download_count_google = response1.download()
-        print "Already downloaded: " + str(download_count_google) + " images from Google."
+        print ("Already downloaded: " + str(download_count_google) + " images from Google.")
 
         # using google crawler
         # class instantiation
-        response2 = BingImages(keyword=arguments["keywords"], save_path=arguments["save_path"], download_count=download_count_google)
+        response2 = BingImages(keyword=arguments["keywords"], save_path=arguments["save_path"],
+                               download_count=download_count_google)
         download_count_Bing = response2.download()
-        print "Already downloaded: " + str(download_count_Bing) + " images from Bing."
+        print ("Already downloaded: " + str(download_count_Bing) + " images from Bing.")
 
         # using baidu crawler
         # class instantiation
         response3 = BaiduImages(keyword=arguments["keywords"], save_path=arguments["save_path"],
                                 download_count=download_count_google+download_count_Bing)
         download_count_baidu = response3.download()
-        print "Already downloaded: " + str(download_count_baidu) + " images from Baidu."
+        print ("Already downloaded: " + str(download_count_baidu) + " images from Baidu.")
 
-        print "Downloaded: " + str(download_count_baidu+download_count_google+download_count_Bing) + " in total."
+        print ("Downloaded: " + str(download_count_baidu+download_count_google+download_count_Bing) + " in total.")
 
 
     def create_yaml_file(self, arguments):

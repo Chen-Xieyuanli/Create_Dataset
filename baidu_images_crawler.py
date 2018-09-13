@@ -7,6 +7,7 @@ import os
 import sys
 import ssl
 import threading
+import chardet
 
 version = (3, 0)
 cur_version = sys.version_info
@@ -63,9 +64,18 @@ class BaiduImages():
         self.pool_sema = threading.BoundedSemaphore(self.threads)
 
     def download(self):
-        for i in range(0, self.acJsonCount):
+        for i in range(0, int(self.acJsonCount)):
             url = self.get_search_url(i * self.rn)
-            response = self.download_page(url).replace("\\", "")
+
+            # for python 3
+            response = self.download_page(url)
+            encode_type = chardet.detect(response)
+            response = response.decode(encode_type['encoding'])
+            response = response.replace("\\", "")
+
+            # for python 2
+            # response = self.download_page(url).replace("\\", "")
+
             image_url_list = self.pick_image_urls(response)
             threads = self.save_images(image_url_list)
 
@@ -213,5 +223,5 @@ class BaiduImages():
 # for test
 if __name__ == '__main__':
     keyword = " ".join(sys.argv[1:])
-    search = BaiduImages(keyword)
+    search = BaiduImages("car")
     search.download()

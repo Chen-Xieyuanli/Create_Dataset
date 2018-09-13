@@ -177,5 +177,5 @@ class BingImages():
 # for test
 if __name__ == "__main__":
     keyword = " ".join(sys.argv[1:])
-    search = BingImages(keyword)
+    search = BingImages("car")
     search.download()
