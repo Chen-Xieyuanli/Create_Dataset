@@ -3,6 +3,7 @@
 # Creating dataset for Bonnet
 
 import os
+import time
 import sys
 import threading
 import numpy as np
@@ -37,23 +38,32 @@ class CleanOutliers():
                                 std=[0.229, 0.224, 0.225])
 
         transforms = T.Compose([
-            T.Scale(224),
+            T.Resize(size=(224, 224)),
             T.CenterCrop(224),
             T.ToTensor(),
-            normalize
+            # normalize
         ])
-        try:
-            Image.open(img_path)
-            img = Image.open(img_path)
-            img = img.convert("RGB")
-            # assign it to a variable
-            img_var = Variable(transforms(img))
-            img_var = img_var.unsqueeze(0)
-            return img_var
+        # try:
+        Image.open(img_path)
+        img = Image.open(img_path)
+        img = img.convert("RGB")
+        img = transforms(img)
 
-        except:
-            print("Cannot open this image!!!")
-            os.remove(img_path)
+        # show the transformed images
+        if 0:
+            img_ = img.numpy()
+            img_ = np.transpose(img_, (1, 2, 0))
+            plt.imshow(img_)
+            plt.pause(0.1)
+
+        # assign it to a variable
+        img_var = Variable(img)
+        img_var = img_var.unsqueeze(0)
+        return img_var
+
+        # except:
+        #     print("Cannot open this image!!!")
+        #     # os.remove(img_path)
 
     def extract_features(self, img_var):
         # set up the pretrained resnet
@@ -164,7 +174,7 @@ class CleanOutliers():
         root_path = self.path
         image_list = os.listdir(root_path)
         image_list.sort()
-        feature_txt_path = "./features.txt" # save the feature list to the features.txt
+        feature_txt_path = "./features.txt"  # save the feature list to the features.txt
         f = open(feature_txt_path, "a+")
 
         # Init the feature matrix
@@ -182,7 +192,7 @@ class CleanOutliers():
                     new_context = str(image_list[i]) + ": is bad\n"
                     f.write(new_context)
                     try:
-                        os.remove(image_path)
+                        # os.remove(image_path)
                         continue
                     except:
                         continue
@@ -190,8 +200,8 @@ class CleanOutliers():
                 try:
                     # using ResNet to extract features of images
                     features = self.extract_features(img_var)
-                    feature_slice = features[0, 1:, 0, 0].numpy()
-
+                    # feature_slice = features[0, 1:, 0, 0].numpy()
+                    feature_slice = features[0, :, 0, 0].numpy()
                     # record all the features as a matrix
                     # feature_matrix[image_list[i]] = feature_slice
 
@@ -231,6 +241,6 @@ class CleanOutliers():
 # for test
 if __name__ == '__main__':
     # dataset_path = " ".join(sys.argv[1:])
-    dataset_path = "/home/ipb38admin/yuanli/Create_Dataset/car"
+    dataset_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_dog"
     search = CleanOutliers(dataset_path)
     search.clean_outliers()

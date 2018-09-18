@@ -7,4 +7,5 @@ cfg/
 *.pyc
 cat/
 bear/
+cat_dog/
 features-onlymean
