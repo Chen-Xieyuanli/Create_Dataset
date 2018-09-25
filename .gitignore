@@ -8,4 +8,9 @@ cfg/
 cat/
 bear/
 cat_dog/
+cat_tennis/
 features-onlymean
+
+features_cat_tennis.txt
+features-good.txt
+plotfeatures.py

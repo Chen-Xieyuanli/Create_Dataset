@@ -45,37 +45,48 @@ def calEuclideanDistance(vec1,vec2):
     dist = np.sqrt(np.sum(np.square(vec1 - vec2)))
     return dist
 
-def pca(dataMat, topNfeat=2):
-    # calculate the mean value of each column
-    feature_mean = np.mean(dataMat, axis=0)
+def pca(dataMat, percentage=0.9):
+        # calculate the mean value of each column
+        feature_mean = np.mean(dataMat, axis=0)
 
-    # decentralization
-    feature_decentralized = dataMat - feature_mean
+        # decentralization
+        feature_decentralized = dataMat - feature_mean
 
-    # calculate the covariance
-    # set each column representing a variable, while the rows contain observations.
-    cov_mat = np.cov(feature_decentralized, rowvar=False)
+        # calculate the covariance
+        # set each column representing a variable, while the rows contain observations.
+        cov_mat = np.cov(feature_decentralized, rowvar=False)
 
-    # calculate the eigenvalues of the covariance matrix and the corresponding eigenvectors
-    eig_vals, eig_vects = np.linalg.eig(np.mat(cov_mat))
+        # calculate the eigenvalues of the covariance matrix and the corresponding eigenvectors
+        eig_vals, eig_vects = np.linalg.eigh(cov_mat)
 
-    # descend the eigenvalues
-    eig_val_id = np.argsort(eig_vals)
-    eig_val_id = eig_val_id[:-(topNfeat + 1):-1]
+        # descend the eigenvalues
+        eig_val_id = np.argsort(eig_vals)[::-1]
 
-    # extract the corresponding eigenvectors
-    red_eig_vects = eig_vects[:, eig_val_id]
+        # calculate the percentage of eigenvalues
+        eig_vals_sum = np.sum(eig_vals)
+        temp_sum = 0
+        best_dimention = 0
+        for id in eig_val_id:
+            temp_sum += eig_vals[id]
+            best_dimention += 1
+            if temp_sum >= eig_vals_sum * percentage:
+                break
 
-    # descend the dimensions
-    low_data_mat = feature_decentralized * red_eig_vects
+        eig_val_id_ = eig_val_id[0:best_dimention]
 
-    return low_data_mat.real, feature_mean.real
+        # extract the corresponding eigenvectors
+        red_eig_vects = eig_vects[:, eig_val_id_]
+
+        # descend the dimensions
+        low_data_mat = feature_decentralized.dot(red_eig_vects)
+
+        return low_data_mat, feature_mean
 
 
-filename = '/home/ipb38admin/yuanli/Create_Dataset/features.txt'
+filename = '/home/ipb38admin/yuanli/Create_Dataset/features_cat_tennis.txt'
 features = {}
 valid_num = 0
-feature_matrix = [[]]*70
+feature_matrix = [[]]*99
 feature_sigma = []
 with open(filename, 'r') as file_to_read:
     while True:
@@ -112,7 +123,7 @@ if 1:
     cv2.createButton('yes', input_yes)
     cv2.createButton('no', pass_image)
     while i_select < 20:
-        img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_dog/" + str(int(feature_idex[i_select]))
+        img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_tennis/" + str(int(feature_idex[i_select]))
         try:
             img = cv2.imread(img_path)
             img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
@@ -137,15 +148,22 @@ if 1:
     selected_feature_mean_tsne = np.mean(selected_images_tsne, axis=0)
     selected_feature_mean_pca = np.mean(selected_images_pca, axis=0)
 
+    selected_feature_median = np.median(selected_images, axis=0)
+    selected_feature_median_tsne = np.median(selected_images_tsne, axis=0)
+    selected_feature_median_pca = np.median(selected_images_pca, axis=0)
+
 
 ax_pca = plt.subplot(121)
 
 # len(feature_matrix) == len(feature_matrix_pca) == len(feature_matrix_tsne)
 for i in range(0, len(feature_matrix_pca)):
-    if feature_idex[i] < 51:
+    if feature_idex[i] < 89:
         ax_pca.scatter(feature_matrix_pca[i, 0], feature_matrix_pca[i, 1], c='r')
     else:
         ax_pca.scatter(feature_matrix_pca[i, 0], feature_matrix_pca[i, 1], c='b')
+
+    ax_pca.scatter(selected_feature_median_pca[0], selected_feature_median_pca[1], c='g', marker='*')
+    ax_pca.scatter(selected_feature_mean_pca[0], selected_feature_mean_pca[1], c='y', marker='s')
     distances_to_mean_withpca.append(calEuclideanDistance(feature_matrix_pca[i], selected_feature_mean_pca))
 
 for i in range(0, len(feature_matrix_pca)):
@@ -171,10 +189,13 @@ ax_tsne = plt.subplot(122)
 for i in range(0, len(feature_matrix_pca)):
 
     # Number changes according to the given dataset
-    if feature_idex[i] < 51:
+    if feature_idex[i] < 89:
         ax_tsne.scatter(feature_matrix_tsne[i, 0], feature_matrix_tsne[i, 1], c='r')
     else:
         ax_tsne.scatter(feature_matrix_tsne[i, 0], feature_matrix_tsne[i, 1], c='b')
+
+    ax_tsne.scatter(selected_feature_median_tsne[0], selected_feature_median_tsne[1], c='g', marker='*')
+    ax_tsne.scatter(selected_feature_mean_tsne[0], selected_feature_mean_tsne[1], c='y', marker='s')
 
 # draw the distributions of all features
 if 1:
@@ -233,7 +254,7 @@ while True:
     cv2.imshow('distance', array)
 
     # with pca
-    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_dog/" + str(int(distances_to_mean_withpca[giving_distance][1]))
+    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_tennis/" + str(int(distances_to_mean_withpca[giving_distance][1]))
     try:
         img = cv2.imread(img_path)
         img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
@@ -242,7 +263,7 @@ while True:
         print("imagewithpca wrong")
 
     # with out pca
-    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_dog/" + str(int(distances_to_mean_withoutpca[giving_distance][1]))
+    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_tennis/" + str(int(distances_to_mean_withoutpca[giving_distance][1]))
     try:
         img = cv2.imread(img_path)
         img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
@@ -252,7 +273,7 @@ while True:
 
 
     # with teaching
-    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_dog/" + str(int(distances_to_mean_withteaching[giving_distance][1]))
+    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_tennis/" + str(int(distances_to_mean_withteaching[giving_distance][1]))
     try:
         img = cv2.imread(img_path)
         img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
@@ -262,7 +283,7 @@ while True:
 
 
     # with tsne
-    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_dog/" + str(int(distances_to_mean_withtsne[giving_distance][1]))
+    img_path = "/home/ipb38admin/yuanli/Create_Dataset/cat_tennis/" + str(int(distances_to_mean_withtsne[giving_distance][1]))
     try:
         img = cv2.imread(img_path)
         img = cv2.resize(img, (224, 224), interpolation=cv2.INTER_CUBIC)
